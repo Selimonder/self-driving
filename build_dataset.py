@@ -2,12 +2,6 @@ import os, bz2, pickle, random
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import numpy as np
-
-import torch
-from torch import nn, optim
-from torch.utils.data import DataLoader
-from torchvision.models.resnet import resnet18
-
 from tqdm import tqdm
 from typing import Dict
 from concurrent.futures import ThreadPoolExecutor
