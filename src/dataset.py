@@ -33,7 +33,7 @@ class MotionPredictDataset(Dataset):
 
         self.dm = LocalDataManager(None)
         self.rasterizer = self.fn_rasterizer(self.cfg, self.dm)
-        self.data_zarr = ChunkedDataset(self.dm.require(self.cfg[self.str_loader]["key"])).open(cached=False)
+        self.data_zarr = ChunkedDataset(self.dm.require(self.cfg[self.str_loader]["key"])).open(cached=True)
 
         if self.str_loader == 'test_data_loader':
             test_mask = np.load(self.test_mask_path)["arr_0"]
@@ -45,6 +45,4 @@ class MotionPredictDataset(Dataset):
         return self.ds[index]
 
     def __len__(self):
-
-        # return 1000
         return len(self.ds)

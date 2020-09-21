@@ -15,7 +15,7 @@ from multiprocessing import Pool
 
 if __name__ == '__main__':
     
-    DIR_INPUT = "../../input/lyft-motion-prediction-autonomous-vehicles"
+    DIR_INPUT = "../input/lyft-motion-prediction-autonomous-vehicles"
 
     SINGLE_MODE_SUBMISSION = f"{DIR_INPUT}/single_mode_sample_submission.csv"
     MULTI_MODE_SUBMISSION = f"{DIR_INPUT}/multi_mode_sample_submission.csv"
