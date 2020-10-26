@@ -1,6 +1,6 @@
 # lyft
 run ->
-`python main.py` 
+`python main.py`
 
 to create submission
 
