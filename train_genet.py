@@ -125,9 +125,9 @@ class CheckpointEveryNSteps(pl.Callback):
 import torchvision
 from src.loss import *
 
-from efficientnet_pytorch.utils import Conv2dStaticSamePadding
-from efficientnet_pytorch import EfficientNet
-from vit_pytorch import ViT
+#from efficientnet_pytorch.utils import Conv2dStaticSamePadding
+#from efficientnet_pytorch import EfficientNet
+#from vit_pytorch import ViT
 #from vit_pytorch.efficient import ViT
 #from linformer import Linformer
 
@@ -198,13 +198,10 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = LyftModel(cfg)#.to(device)
 
-    ckpt_path = "25frame_vit/lightning_logs/version_3/checkpoints/vit_25frame_1_5000.ckpt"
+    #ckpt_path = "25frame_vit/lightning_logs/version_3/checkpoints/vit_25frame_1_5000.ckpt"
     #ckpt = torch.load(ckpt_path, map_location="cpu")
     #model.load_state_dict(ckpt['state_dict'])
-    
-    # model.effnet0._conv_stem = Conv2dStaticSamePadding(65, 32, kernel_size=(3, 3), stride=(2, 2), bias=False, image_size=(300, 300))
-    # print(model.effnet0)
     # print(f"From {ckpt_path}")
-    # 
-    trainer = Trainer(gradient_clip_val=1., resume_from_checkpoint=ckpt_path, default_root_dir='./25frame_vit', gpus=1, precision=16,max_epochs=100, callbacks=callbacks)#  gradient_clip_val=0.5  # precision=16,, limit_train_batches=0.8) 
+    # resume_from_checkpoint=ckpt_path,
+    trainer = Trainer(gradient_clip_val=1., default_root_dir='./25frame_vit', gpus=1, precision=16,max_epochs=100, callbacks=callbacks)#  gradient_clip_val=0.5  # precision=16,, limit_train_batches=0.8) 
     trainer.fit(model, train_loader)
