@@ -132,3 +132,5 @@ dmypy.json
 ## torch/lightning/...
 lightning_logs/
 pointnet/
+65frame/
+pretrained_weights/
