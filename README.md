@@ -20,12 +20,12 @@ we can switch between them by modifying `val_mode = "validate"` in eval.py. (str
 
 ## Training times
 
-| raster size | pixel size | frames | batch size  |num_workers  |it. speed   |total h (1 epoch)|
-| ----------- | ----------- |----------- |----------- |----------- |----------- |----------- |
-| 300x300     | 0.4, 0.4  |65   |16       | 32 | 2.54s/it | 123h |
-| 300x300     | 0.4, 0.4  |65   |16       | 4 | 2.65s/it | 128h |
-| 300x300     | 0.4, 0.4  |65   |32       | 8 | 4.90s/it | 118h |
-| 300x300     | 0.4, 0.4  |65   |64       | 16 | 9.37s/it | 116h |
+| model name | raster size | pixel size | frames | batch size  |num_workers  |it. speed   |total h (1 epoch)|
+| ----------- | ----------- |----------- |----------- |----------- |----------- |----------- |----------- |
+| Efficientnet-B1| 300x300     | 0.4, 0.4  |65   |16       | 32 | 2.54s/it | 123h |
+| Efficientnet-B1| 300x300     | 0.4, 0.4  |65   |16       | 4 | 2.65s/it | 128h |
+| Efficientnet-B1| 300x300     | 0.4, 0.4  |65   |32       | 8 | 4.90s/it | 118h |
+| Efficientnet-B1| 300x300     | 0.4, 0.4  |65   |64       | 16 | 9.37s/it | 116h |
 
 
 
