@@ -11,7 +11,7 @@ to validate a model
 `python eval.py --mode 'eval' --ckpt ...[pth_to_ckpt]` 
 
 ## Training times
-|model|frames|raster s.|pixel s.|batch s.|worker|it|total|
+|model|frames|raster s.|pixel s.|batch s.|worker|it|total (epoch)|
 |---|---|---|---|---|---|---|---|
 |effnet-b1|65|300x300|0.4,0.4|16|32|2.54s/it|123h|
 |effnet-b1|65|300x300|0.4,0.4|16|4|2.65s/it|128h|
