@@ -9,3 +9,11 @@ to create submission
 to validate a model
 
 `python eval.py --mode 'eval' --ckpt ...[pth_to_ckpt]` 
+
+## Training times
+|model|frames|raster s.|pixel s.|batch s.|worker|it|total|
+|---|---|---|---|---|---|---|---|
+|effnet-b1|65|300x300|0.4,0.4|16|32|2.54s/it|123h|
+|effnet-b1|65|300x300|0.4,0.4|16|4|2.65s/it|128h|
+|effnet-b1|65|300x300|0.4,0.4|32|8|4.90s/it|118h|
+|effnet-b1|65|300x300|0.4,0.4|64|16|9.37s/it|116h|
