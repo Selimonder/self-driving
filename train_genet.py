@@ -20,16 +20,10 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from torch.utils.data import Dataset, DataLoader
 import bz2, pickle
 
-import torchvision
-from src.loss import *
-
-from efficientnet_pytorch.utils import Conv2dStaticSamePadding
-from efficientnet_pytorch import EfficientNet
-
 #os.environ["CUDA_VISIBLE_DEVICES"]="0"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-DIR_INPUT = "../lyft-motion-prediction-autonomous-vehicles"
+DIR_INPUT = "lyft-motion-prediction-autonomous-vehicles"
 SINGLE_MODE_SUBMISSION = f"{DIR_INPUT}/single_mode_sample_submission.csv"
 MULTI_MODE_SUBMISSION = f"{DIR_INPUT}/multi_mode_sample_submission.csv"
 
@@ -39,7 +33,7 @@ cfg = {
     'format_version': 4,
     'model_params': {
         'model_architecture': 'resnet50',
-        'history_num_frames': 30,
+        'history_num_frames': 10,
         'history_step_size': 1,
         'history_delta_time': 0.1,
         'future_num_frames': 50,
@@ -48,7 +42,7 @@ cfg = {
     },
     
     'raster_params': {
-        'raster_size': [300, 300],  ## [384, 128]
+        'raster_size': [224, 160],  ## [384, 128]
         'pixel_size': [0.4, 0.4], ## 0.5 0.5
         'ego_center': [0.25, 0.5],
         'map_type': 'py_semantic',
@@ -60,7 +54,7 @@ cfg = {
     
     'train_data_loader': {
         'key': 'scenes/train.zarr',
-        'batch_size': 32,
+        'batch_size': 128,
         'shuffle': True,
         'num_workers': 16,
     },
@@ -99,7 +93,7 @@ class CheckpointEveryNSteps(pl.Callback):
     def __init__(
         self,
         save_step_frequency,
-        prefix="600px_b1",
+        prefix="25frame_b5",
         use_modelcheckpoint_filename=False,
     ):
         """
@@ -128,26 +122,37 @@ class CheckpointEveryNSteps(pl.Callback):
 
 
 ###
+import torchvision
+from src.loss import *
 
+from efficientnet_pytorch.utils import Conv2dStaticSamePadding
+from efficientnet_pytorch import EfficientNet
+from vit_pytorch import ViT
+#from vit_pytorch.efficient import ViT
+#from linformer import Linformer
+
+import GENet
 class LyftModel(pl.LightningModule):
-    def __init__(self, cfg: Dict, learning_rate = 0.0003, num_modes=3):
+    def __init__(self, cfg: Dict, model_name="efficientnet-b1", num_modes=3):
         super().__init__()
 
-        self.learning_rate = learning_rate
         ## c
         num_history_channels = (cfg["model_params"]["history_num_frames"] + 1) * 2
         num_in_channels = 3 + num_history_channels
+
         # X, Y coords for the future positions (output shape: Bx50x2)
         self.future_len = cfg["model_params"]["future_num_frames"]
         num_targets = 2 * self.future_len
         self.num_preds = num_targets * num_modes
         self.num_modes = num_modes
         
-        self.effnet0 = EfficientNet.from_pretrained('efficientnet-b1', in_channels=65, num_classes=self.num_preds + num_modes,)
+        self.genet = GENet.genet_large(pretrained=False, root='./GENet_params/', num_classes=self.num_preds + num_modes)
+        self.genet.module_list[0].netblock = torch.nn.Conv2d(25, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+#         self.effnet0 = EfficientNet.from_pretrained(f'{model_name}', in_channels=65, num_classes=self.num_preds + num_modes,)
 
     def forward(self, images):
         ## road
-        x = self.effnet0(images)
+        x = self.genet(images)
         # pred (bs)x(modes)x(time)x(2D coords)
         # confidences (bs)x(modes)
         bs, _ = x.shape
@@ -161,39 +166,39 @@ class LyftModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         data = batch
-        inputs = batch["image"]#.to(device)
-        target_availabilities = data["target_availabilities"]#.to(device)
-        targets = data["target_positions"]#.to(device)
+        inputs = batch["image"].to(device)
+        target_availabilities = data["target_availabilities"].to(device)
+        targets = data["target_positions"].to(device)
         pred, confidences = self(inputs)
         ## back
         ## TODO: log learning rate
         loss = pytorch_neg_multi_log_likelihood_batch(targets, pred, confidences, target_availabilities)
-        #result = pl.TrainResult(loss)
-        self.log('train_loss', loss, on_epoch=True)
-        return loss
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss, on_epoch=True)
+        return result
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=0.0001, weight_decay=10e-5)
-        return [optimizer]
+        ## lr find
+        #optimizer = torch.optim.AdamW(self.parameters(), lr=(5e-5 or self.learning_rate))
 
+        optimizer = torch.optim.AdamW(self.parameters(), lr=0.0003, weight_decay=0.)
+        #optimizer = AdamP(self.parameters(), lr=0.00003, betas=(0.9, 0.999), weight_decay=0., nesterov=True)
+        #optimizer = optim.Lamb(self.parameters(), lr= 1e-4, betas=(0.9, 0.999), eps=1e-8, weight_decay=0, )
+        #scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, steps_per_epoch=int(22000000/64), epochs=10)
+        return [optimizer]#, [scheduler]
 if __name__ == '__main__':
-
-    ## MAIN TRAINING_SCRIPT ##
-    
-
     callbacks = [LearningRateMonitor(logging_interval='step'), 
-    CheckpointEveryNSteps(prefix='b1_300px_65frame', save_step_frequency=1000)]
+    CheckpointEveryNSteps(prefix='vit_25frame', save_step_frequency=5000)]
 
     train_dataset = MotionPredictDataset(cfg)
     train_cfg = cfg['train_data_loader']
     train_loader = DataLoader(train_dataset, batch_size=train_cfg['batch_size'], 
-                             num_workers=train_cfg['num_workers'], shuffle=train_cfg['shuffle'], 
-                              pin_memory=True)
+                             num_workers=train_cfg['num_workers'], shuffle=train_cfg['shuffle'], pin_memory=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = LyftModel(cfg)#.to(device)
 
-    ckpt_path = "65frame/lightning_logs/version_4/checkpoints/b1_300px_65frame_10_167000.ckpt"
+    ckpt_path = "25frame_vit/lightning_logs/version_3/checkpoints/vit_25frame_1_5000.ckpt"
     #ckpt = torch.load(ckpt_path, map_location="cpu")
     #model.load_state_dict(ckpt['state_dict'])
     
@@ -201,7 +206,5 @@ if __name__ == '__main__':
     # print(model.effnet0)
     # print(f"From {ckpt_path}")
     # 
-    trainer = Trainer(resume_from_checkpoint=ckpt_path, default_root_dir='./65frame', precision=16,max_epochs=100,
-                      gpus=8, distributed_backend='ddp', 
-                      callbacks=callbacks)#  gradient_clip_val=0.5  # precision=16,, limit_train_batches=0.8) 
+    trainer = Trainer(gradient_clip_val=1., resume_from_checkpoint=ckpt_path, default_root_dir='./25frame_vit', gpus=1, precision=16,max_epochs=100, callbacks=callbacks)#  gradient_clip_val=0.5  # precision=16,, limit_train_batches=0.8) 
     trainer.fit(model, train_loader)

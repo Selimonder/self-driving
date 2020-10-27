@@ -16,10 +16,9 @@ from l5kit.rasterization import build_rasterizer
 
 sys.path.append('src')
 from src.dataset import *
-from src.model import *
 
 ## lightning
-from effnet import EfficientNet
+# from effnet import EfficientNet
 
 import pytorch_lightning as pl
 
@@ -29,18 +28,23 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.cuda.amp import GradScaler, autocast
 
 import matplotlib.pyplot as plt
-from model import *
 ## START FOR VIS
 import l5kit
 from l5kit.visualization import *
 from l5kit.geometry import *
+
+# ===== GENERATE AND LOAD CHOPPED DATASET
+from l5kit.evaluation import write_pred_csv, compute_metrics_csv, read_gt_csv, create_chopped_dataset
+from l5kit.evaluation.chop_dataset import MIN_FUTURE_STEPS
+
+
 import imageio
 from IPython.display import Video
 from PIL import Image, ImageDraw
 
 from pathlib import Path
 
-DIR_INPUT = "lyft-motion-prediction-autonomous-vehicles"
+DIR_INPUT = "../lyft-motion-prediction-autonomous-vehicles"
 SINGLE_MODE_SUBMISSION = f"{DIR_INPUT}/single_mode_sample_submission.csv"
 MULTI_MODE_SUBMISSION = f"{DIR_INPUT}/multi_mode_sample_submission.csv"
 
@@ -87,7 +91,7 @@ cfg = {
         'key': 'scenes/sample.zarr',
         'batch_size': 16,
         'shuffle': True,
-        'num_workers': 4,
+        'num_workers': 8,
     },
     
     'train_params': {
@@ -99,17 +103,17 @@ cfg = {
 }
 
 # set env variable for data
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+# os.environ["CUDA_VISIBLE_DEVICES"]="0"
 os.environ["L5KIT_DATA_FOLDER"] = DIR_INPUT
 
 
 ###
 import torchvision
-from adamp import AdamP
+# from adamp import AdamP
 from src.loss import *
-from src.effnet import *
-from linformer_pytorch import Linformer
-from axial_attention import AxialImageTransformer, AxialAttention
+# from linformer_pytorch import Linformer
+# from axial_attention import AxialImageTransformer, AxialAttention
+
 def init_layer(layer):
     nn.init.xavier_normal_(layer.weight)
     if hasattr(layer, "bias"):
@@ -231,11 +235,6 @@ class ensemble(pl.LightningModule):
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ===== GENERATE AND LOAD CHOPPED DATASET
-from l5kit.evaluation import write_pred_csv, compute_metrics_csv, read_gt_csv, create_chopped_dataset
-from l5kit.evaluation.chop_dataset import MIN_FUTURE_STEPS
-
-
 
 
 
@@ -257,20 +256,20 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-
+    dm = LocalDataManager(None)
     num_frames_to_chop = 100
-
-    val_mode = "validate"
+        
+    val_mode = "sample"
     eval_cfg = cfg["val_data_loader"]
     eval_cfg['key'] = f'scenes/{val_mode}.zarr'
 
-    #eval_base_path = create_chopped_dataset(dm.require(eval_cfg["key"]), cfg["raster_params"]["filter_agents_threshold"], 
-    #                              num_frames_to_chop, cfg["model_params"]["future_num_frames"], MIN_FUTURE_STEPS)
+#     eval_base_path = create_chopped_dataset(dm.require(eval_cfg["key"]), cfg["raster_params"]["filter_agents_threshold"], 
+#                                   num_frames_to_chop, cfg["model_params"]["future_num_frames"], MIN_FUTURE_STEPS)
 
-    eval_base_path = f"lyft-motion-prediction-autonomous-vehicles/scenes/{val_mode}_chopped_100"
+    eval_base_path = f"../lyft-motion-prediction-autonomous-vehicles/scenes/{val_mode}_chopped_100"
 
     
-    dm = LocalDataManager(None)
+    
     rasterizer = build_rasterizer(cfg, dm)
 
     eval_zarr_path = str(Path(eval_base_path) / Path(dm.require(eval_cfg["key"])).name)
@@ -299,7 +298,7 @@ if __name__ == '__main__':
     ckpt_path = args.ckpt
     ckpt = torch.load(ckpt_path, map_location="cpu")
     model.load_state_dict(ckpt['state_dict'])
-    
+    #model = nn.DataParallel(model)
     model.eval()
     torch.set_grad_enabled(False)
 
