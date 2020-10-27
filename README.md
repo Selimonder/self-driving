@@ -20,7 +20,7 @@ we can switch between them by modifying `val_mode = "validate"` in eval.py. (str
 
 ## Training times
 
-| raster size | pixel size | frames | batch size  |num_workers  |it. speed   |total hr (1 epoch)|
+| raster size | pixel size | frames | batch size  |num_workers  |it. speed   |total h (1 epoch)|
 | ----------- | ----------- |----------- |----------- |----------- |----------- |----------- |
 | 300x300     | 0.4, 0.4  |65   |16       | 32 | 2.54s/it | 123h |
 | 300x300     | 0.4, 0.4  |65   |16       | 4 | 2.65s/it | 128h |
