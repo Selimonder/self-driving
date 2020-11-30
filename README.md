@@ -1,4 +1,5 @@
-# lyft
+# motion prediction models for self-driving vehicles [WIP]
+
 run ->
 `python main.py`
 
